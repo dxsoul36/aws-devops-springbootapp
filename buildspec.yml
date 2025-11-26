@@ -3,40 +3,28 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo Logging in to Amazon ECR....
-      # Check AWS CLI version
+      - echo "Logging into Amazon ECR"
       - aws --version
-      # Log in to Amazon ECR
-      - aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/o5g4z0s7
-      # Define repository URI and image tag
-      - REPOSITORY_URI=public.ecr.aws/o5g4z0s7/ecr-nginx-demo
-      - IMAGE_TAG=build-$(echo $CODEBUILD_BUILD_ID | awk -F":" '{print $2}')
+      - $(aws ecr get-login --no-include-email --region $AWS_REGION)
+      - REPO_URI=$ECR_URI
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+
   build:
     commands:
-      - echo Build started on date
-      - echo Building the JAR file...
-      # Build the Java project using Maven
-      - mvn clean install
-      - echo Building the Docker image...
-      # Build and tag Docker image
-      - docker build -t $REPOSITORY_URI:latest .
-      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      - echo "Building JAR"
+      - mvn clean package -DskipTests
+      - echo "Building Docker Image"
+      - docker build -t $REPO_URI:latest .
+      - docker tag $REPO_URI:latest $REPO_URI:$IMAGE_TAG
+
   post_build:
     commands:
-      - echo Build completed on date
-      - echo Pushing the Docker image to ECR...
-      # Push Docker images to ECR
-      - docker push $REPOSITORY_URI:latest
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo Writing image definitions file...
-      # Define container name and create imagedefinitions.json for ECS
-      - DOCKER_CONTAINER_NAME=springboot
-      - printf '[{"name":"%s","imageUri":"%s"}]' $DOCKER_CONTAINER_NAME $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
-      - echo $DOCKER_CONTAINER_NAME
-      - echo Displaying imagedefinitions.json content
-      - cat imagedefinitions.json
+      - echo "Pushing to ECR"
+      - docker push $REPO_URI:latest
+      - docker push $REPO_URI:$IMAGE_TAG
+      - printf '[{"name":"springboot-app","imageUri":"%s"}]' "$REPO_URI:$IMAGE_TAG" > imagedefinitions.json
 
 artifacts:
   files:
     - imagedefinitions.json
-    - target/springboot-aws-deploy.jar
