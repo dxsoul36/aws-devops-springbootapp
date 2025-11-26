@@ -10,7 +10,7 @@ phases:
     commands:
       - echo "Logging in to Amazon ECR..."
       - aws --version
-      - REPOSITORY_URI=<YOUR_ECR_URI>            # replace with your ECR URI
+      - export REPOSITORY_URI=042167397413.dkr.ecr.us-east-1.amazonaws.com/ecr-springboot-demo            # replace with your ECR URI
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION \
           | docker login --username AWS --password-stdin $REPOSITORY_URI
 
