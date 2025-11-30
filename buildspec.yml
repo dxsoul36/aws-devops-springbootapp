@@ -1,34 +1,32 @@
 version: 0.2
 
+env:
+  variables:
+    IMAGE_REPO_NAME: "springboot-app"
+
 phases:
   install:
     commands:
-      - echo "Installing Maven"
-      - mvn -v            # verify Maven installed
+      - echo "Installing dependencies..."
+      - mvn -v
+      - docker --version
 
   pre_build:
     commands:
-      - echo "Logging in to Amazon ECR..."
-      - aws --version
-      - export REPOSITORY_URI=042167397413.dkr.ecr.us-east-1.amazonaws.com/ecr-springboot-demo            # replace with your ECR URI
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION \
-          | docker login --username AWS --password-stdin $REPOSITORY_URI
+      - echo "Logging into ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
+      - echo "Current directory is: $(pwd)"
+      - ls -la
 
   build:
     commands:
-      - echo "Building Spring Boot application..."
+      - echo "Building JAR..."
       - mvn clean package -DskipTests
       - echo "Building Docker image..."
-      - docker build -t springboot-app .
+      - docker build -t $IMAGE_REPO_NAME .
 
   post_build:
     commands:
-      - echo "Tagging image..."
-      - docker tag springboot-app:latest $REPOSITORY_URI:latest
-      - echo "Pushing image to ECR..."
+      - echo "Tagging & pushing image..."
+      - docker tag $IMAGE_REPO_NAME:latest $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:latest
-      - printf '[{"name":"springboot-app","imageUri":"%s"}]' $REPOSITORY_URI:latest > imagedefinitions.json
-
-artifacts:
-  files:
-    - imagedefinitions.json
