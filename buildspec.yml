@@ -3,6 +3,9 @@ version: 0.2
 env:
   variables:
     IMAGE_REPO_NAME: "springboot-app"
+    AWS_DEFAULT_REGION: "us-east-1"
+    ACCOUNT_ID: "042167397413"
+    REPOSITORY_URI: "042167397413.dkr.ecr.us-east-1.amazonaws.com/springboot-app"
 
 phases:
   install:
@@ -15,7 +18,7 @@ phases:
     commands:
       - echo "Logging into ECR..."
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
-      - echo "Current directory is: $(pwd)"
+      - echo "Directory content:"
       - ls -la
 
   build:
