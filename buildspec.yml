@@ -10,14 +10,16 @@ env:
 phases:
   install:
     commands:
-      - echo "Verifying tools..."
+      - echo "Installing dependencies..."
       - mvn -v
       - docker --version
 
   pre_build:
     commands:
-      - echo "Logging into Amazon ECR..."
+      - echo "Logging into ECR..."
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPOSITORY_URI
+      - echo "Source directory content:"
+      - ls -la
 
   build:
     commands:
@@ -31,7 +33,6 @@ phases:
       - echo "Tagging & pushing Docker image..."
       - docker tag $IMAGE_REPO_NAME:latest $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:latest
-
       - echo "Creating imagedefinitions.json..."
       - printf '[{"name":"springboot-app","imageUri":"%s"}]' $REPOSITORY_URI:latest > imagedefinitions.json
 
